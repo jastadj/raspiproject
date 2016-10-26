@@ -1,0 +1,28 @@
+#note : this is a sample script
+#scripting commands:
+#RELAY:4,1 - turn relay 4 on
+#RELAY:2,0 - turn relay 2 off
+#DELAY:200 - delay for 200ms
+#PRINT:text - print text to console
+#WAITONMOTION:7 - wait on motion detection on pin 7
+#PLAYSOUND:testwav.wav - play testwav.wav file
+#WAITONSOUND:0 - wait on sounds to finish playing (the 0 has no meaning)
+#STOPALLSOUND:0 - stop all sounds from playing (the 0 has no meaning)
+#LABEL:mystart - create a label to allow for loops
+#GOTO:mystart - goto label previously created
+#TAKEPICTURE:0 = take picture with picam (the 0 has no meaning)
+#SHOWFEED:10 = show camera feed for 10 seconds
+
+#example:
+
+PRINT:starting script...
+LABEL:waitformotion
+PRINT:waiting on motion detection...
+WAITONMOTION:7
+PRINT:motion detected...
+PRINT:taking picutre...
+TAKEPICTURE:0
+PLAYSOUND:testwave.wav
+WAITONSOUND:0
+GOTO:waitformotion
+

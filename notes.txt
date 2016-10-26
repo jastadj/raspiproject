@@ -1,0 +1,33 @@
+Compile (outdated):
+g++ raspiproject.cpp -o raspiproject -lwiringPi -lsfml-system -lsfml-audio -Wall
+
+Building using cmake (recommended):
+mkdir build
+cd build
+cmake ..
+make
+
+
+
+sudo (run root priviliges??)
+
+run a program : sudo ./nameoffiletorun
+
+
+see ip address : ifconfig
+
+execute a script : sh <script name>
+
+how to change audio output:
+
+amixer cset numid=3 2
+in this example, the 2 = HDMI
+
+1 = analog
+0 = automatic
+
+ls - list files
+cp - copy file
+rm - remove file
+
+unzip zip_file -d destination_folder
