@@ -1,63 +1,36 @@
-#WAITONMOTION:7
-#PLAYSOUND:testwav.wav
-#DELAY:1000
-#PRINT:this is a test
+#note : this is a sample script
+#scripting commands:
+#SETPINOUT:2 - set pin 2 as output
+#SETPININ:4 - set pin 4 as input
+#PINON:2 - set pin 2 on (if configured as output pin first)
+#PINOFF:2 - set pin 2 off (if configured as output pin first)
+#DELAY:200 - delay for 200ms
+#PRINT:text - print text to console
+#WAITONINPUTHI:3 - wait on pin 3 high input
+#WAITONINPUTLO:5 - wait on pin 5 low input
+#PLAYSOUND:testwav.wav - play testwav.wav file
+#WAITONSOUND:0 - wait on sounds to finish playing (the 0 has no meaning)
+#STOPALLSOUND:0 - stop all sounds from playing (the 0 has no meaning)
+#LABEL:mystart - create a label to allow for loops
+#GOTO:mystart - goto label previously created
+#TAKEPICTURE:0 = take picture with picam (the 0 has no meaning)
+#SHOWFEED:10 = show camera feed for 10 seconds
 
-LABEL:waitformotion
-PRINT:Waiting for motion...
-PRINT:run starts in 2s
-DELAY:2000
-PLAYSOUND:DOUG1.wav
-WAITONSOUND:0
-PLAYSOUND:METALSLAM2.wav
-WAITONSOUND:0
+#configure pins first, 0-6 are outputs, 7 is input
+SETPINOUT:0
+SETPINOUT:1
+SETPINOUT:2
+SETPINOUT:3
+SETPINOUT:4
+SETPINOUT:5
+SETPINOUT:6
+SETPININ:7
+PRINT:starting...
+LABEL:start
+PINON:1
+PRINT:pin 1 is on...
+PRINT:waiting on pin 7 for high input
+WAITONINPUTHI:7
+PRINT:found high input on pin 7
 DELAY:500
-RELAY:0,1
-DELAY:500
-PLAYSOUND:POWERUP.wav
-WAITONSOUND:0
-RELAY:1,1
-PLAYSOUND:ELECTRIC20SLOW.wav
-RELAY:2,1
-DELAY:200
-RELAY:3,1
-DELAY:50
-RELAY:3,0
-DELAY:2000
-RELAY:3,1
-DELAY:50
-RELAY:3,0
-DELAY:800
-RELAY:3,1
-DELAY:50
-RELAY:3,0
-DELAY:600
-RELAY:3,1
-DELAY:50
-RELAY:3,0
-DELAY:600
-RELAY:3,1
-DELAY:100
-RELAY:3,0
-DELAY:1500
-RELAY:3,1
-DELAY:50
-RELAY:4,1
-DELAY:7000
-STOPALLSOUND:0
-RELAY:3,0
-DELAY:200
-RELAY:3,1
-DELAY:50
-RELAY:3,0
-RELAY:2,0
-RELAY:1,0
-RELAY:0,0
-RELAY:4,0
-DELAY:120000
-WAITONMOTION:7
-PRINT:Motion detected...v
-PRINT:startin over...
-DELAY:10000
-GOTO:waitformotion
-
+GOTO:start

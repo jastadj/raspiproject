@@ -23,6 +23,8 @@
 
 #define CAMERA_OUTPUT_FOLDER "./output/"
 
+#define PINCOUNT 8
+
 // for camera
 //char tmpbuff[MAIN_TEXTURE_WIDTH*MAIN_TEXTURE_HEIGHT*4];
 //should the camera convert frame data from yuv to argb automatically?
@@ -30,30 +32,20 @@ bool showimage = false;
 bool do_argb_conversion = true;
 GfxTexture texture;
 
-//proto functions
-bool isValidPin(int tpin);
-
-enum GPIO_P {PIN0, PIN1, PIN2, PIN3, PIN4, PIN5, PIN6, PIN7, PINCOUNT};
-
-enum _EVENT_TYPES{EVENT_RELAY, EVENT_DELAY, EVENT_MOTION, EVENT_SOUND_PLAY, EVENT_SOUND_WAIT, EVENT_SOUND_STOP,
-	 EVENT_PRINT, EVENT_LABEL, EVENT_GOTO, EVENT_TAKEPICTURE, EVENT_SHOWFEED};
+enum _EVENT_TYPES{EVENT_SETPINOUT, EVENT_SETPININ, EVENT_PINON, EVENT_PINOFF, EVENT_DELAY, EVENT_WAITONINPUTHI,
+                  EVENT_WAITONINPUTLO, EVENT_SOUND_PLAY, EVENT_SOUND_WAIT, EVENT_SOUND_STOP, EVENT_PRINT,
+                  EVENT_LABEL, EVENT_GOTO, EVENT_TAKEPICTURE, EVENT_SHOWFEED};
 
 //sound files
 sf::SoundBuffer mysoundbuf;
 sf::Sound mysound;
 
-std::string pfilename;
-
 // camera
 CCamera *cam = NULL;
 
-//struct for relay timing and condition
-struct rstat
-{
-	unsigned int time;
-	bool on;
-};
-
+//forward declarations
+std::string getTimeAndDate();
+void showFeed(int feedtime);
 
 struct soundObject
 {
@@ -62,6 +54,8 @@ struct soundObject
 	std::string fname;
 };
 
+/////////////////////////////////////////////////
+//  EVENT STUFF
 class sevent
 {
 	public:
@@ -87,81 +81,14 @@ sevent::~sevent()
 	if(soundobj != NULL) delete soundobj;
 }
 
-
-//create banks for each relay
-std::vector< std::vector<rstat> > relays;
-
-void threadtest()
-{
-	std::cout << "I'm running a thread!\n";
-}
+/////////////////////////////////////////////////////////////
+// CAMERA STUFF
 
 void initCamera()
 {
 	//cam = StartCamera(MAIN_TEXTURE_WIDTH, MAIN_TEXTURE_HEIGHT,30,1 /*numlevels*/,do_argb_conversion);
 	cam = StartCamera(CAMERA_WIDTH, CAMERA_HEIGHT,30,1,do_argb_conversion);
 }
-
-std::string getTimeAndDate()
-{
-    std::stringstream timess;
-    time_t rawtime;
-    struct tm *timeinfo;
-    time(&rawtime);
-    timeinfo = localtime(&rawtime);
-
-    timess << (timeinfo->tm_year -100 + 2000) << timeinfo->tm_mon + 1 << timeinfo->tm_mday <<
-        "_" << timeinfo->tm_hour << "_" << timeinfo->tm_min << "_" << timeinfo->tm_sec;
-
-    return timess.str();
-
-}
-
-bool save_png_libpng(const char *filename, char *pixels, int w, int h)
-{
-    png_structp png = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-    if (!png)
-        return false;
-
-    png_infop info = png_create_info_struct(png);
-    if (!info) {
-        png_destroy_write_struct(&png, &info);
-        return false;
-    }
-
-    FILE *fp = fopen(filename, "wb");
-    if (!fp) {
-        png_destroy_write_struct(&png, &info);
-        return false;
-    }
-
-    png_init_io(png, fp);
-    png_set_IHDR(png, info, w, h, 8 /* depth */, PNG_COLOR_TYPE_RGBA, PNG_INTERLACE_NONE,
-        PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
-    png_colorp palette = (png_colorp)png_malloc(png, PNG_MAX_PALETTE_LENGTH * sizeof(png_color));
-    if (!palette) {
-        fclose(fp);
-        png_destroy_write_struct(&png, &info);
-        return false;
-    }
-    png_set_PLTE(png, info, palette, PNG_MAX_PALETTE_LENGTH);
-    png_write_info(png, info);
-    png_set_packing(png);
-
-    png_bytepp rows = (png_bytepp)png_malloc(png, h * sizeof(png_bytep));
-    for (int i = 0; i < h; ++i)
-        rows[i] = (png_bytep)(pixels + (h - i) * w * 4);
-
-    png_write_image(png, rows);
-    png_write_end(png, info);
-    png_free(png, palette);
-    png_destroy_write_struct(&png, &info);
-
-    fclose(fp);
-    delete[] rows;
-    return true;
-}
-
 
 void snapPicture()
 {
@@ -276,6 +203,67 @@ void showFeed(int feedtime)
 
 }
 
+///////////////////////////////////////////////////////////////
+// TOOLS
+std::string getTimeAndDate()
+{
+    std::stringstream timess;
+    time_t rawtime;
+    struct tm *timeinfo;
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
+
+    timess << (timeinfo->tm_year -100 + 2000) << timeinfo->tm_mon + 1 << timeinfo->tm_mday <<
+        "_" << timeinfo->tm_hour << "_" << timeinfo->tm_min << "_" << timeinfo->tm_sec;
+
+    return timess.str();
+
+}
+
+bool save_png_libpng(const char *filename, char *pixels, int w, int h)
+{
+    png_structp png = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+    if (!png)
+        return false;
+
+    png_infop info = png_create_info_struct(png);
+    if (!info) {
+        png_destroy_write_struct(&png, &info);
+        return false;
+    }
+
+    FILE *fp = fopen(filename, "wb");
+    if (!fp) {
+        png_destroy_write_struct(&png, &info);
+        return false;
+    }
+
+    png_init_io(png, fp);
+    png_set_IHDR(png, info, w, h, 8 /* depth */, PNG_COLOR_TYPE_RGBA, PNG_INTERLACE_NONE,
+        PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
+    png_colorp palette = (png_colorp)png_malloc(png, PNG_MAX_PALETTE_LENGTH * sizeof(png_color));
+    if (!palette) {
+        fclose(fp);
+        png_destroy_write_struct(&png, &info);
+        return false;
+    }
+    png_set_PLTE(png, info, palette, PNG_MAX_PALETTE_LENGTH);
+    png_write_info(png, info);
+    png_set_packing(png);
+
+    png_bytepp rows = (png_bytepp)png_malloc(png, h * sizeof(png_bytep));
+    for (int i = 0; i < h; ++i)
+        rows[i] = (png_bytep)(pixels + (h - i) * w * 4);
+
+    png_write_image(png, rows);
+    png_write_end(png, info);
+    png_free(png, palette);
+    png_destroy_write_struct(&png, &info);
+
+    fclose(fp);
+    delete[] rows;
+    return true;
+}
 
 void hitEnter()
 {
@@ -288,13 +276,15 @@ void hitEnter()
 
 }
 
+/////////////////////////////////////////////////////////
+// PIN STUFF
 void pinOn(int tpin)
 {
 
 	//if pin is out of bounds, ignore and print message
-	if(!isValidPin(tpin) )
+	if(tpin < 0 || tpin >= PINCOUNT)
 	{
-		std::cout << "Invalid GPIO pin (#0-7)\n";
+		std::cout << "Invalid GPIO pin:" << tpin << std::endl;
 		hitEnter();
 		return;
 	}
@@ -307,12 +297,10 @@ void pinOn(int tpin)
 
 void pinOff(int tpin)
 {
-
-
 	//if pin is out of bounds, ignore and print message
-	if( !isValidPin(tpin) )
+	if(tpin < 0 || tpin >= PINCOUNT)
 	{
-		std::cout << "Invalid GPIO pin (#0-7)\n";
+		std::cout << "Invalid GPIO pin:" << tpin << std::endl;
 		hitEnter();
 		return;
 	}
@@ -320,19 +308,6 @@ void pinOff(int tpin)
 	digitalWrite(tpin, LOW);
 
 	return;
-
-
-}
-
-void configAllPins()
-{
-	//walk through each pin and set all 8 as outputs
-	for(int i = 0; i < PINCOUNT; i++)
-	{
-		pinMode(i, OUTPUT);
-	}
-
-	std::cout << "All pins (0-" << PINCOUNT-1 << ") configured for OUTPUT\n";
 }
 
 void allOn()
@@ -345,27 +320,10 @@ void allOff()
 	for(int i = 0; i < PINCOUNT; i++) pinOff(i);
 }
 
-bool isValidPin(int tpin)
-{
-	//check if pin is valid, if not , return false
-	if( tpin < 0 || tpin >= PINCOUNT) return false;
-
-	else return true;
-
-}
-
 void resetAll()
 {
 	//wiring pi init
 	wiringPiSetup();
-	//used to reset clock
-	//wiringPiSetupSys();
-
-	//config all pins
-	//configAllPins();
-
-	//turn all pins off
-	//allOff();
 
 	//reset system clock
 	//wiringPiSetupSys();
@@ -485,27 +443,6 @@ void motionTest()
 	}
 }
 
-void clearRelays()
-{
-	for(int i = 0; i < int(relays.size()); i++) relays[i].clear();
-}
-
-//this function will find the latest relay timing and use that as the terminator
-unsigned int getLastRelay()
-{
-	//timeFound will store the latest timing found
-	unsigned int timeFound = 0;
-
-	for(int i = 0; i < int(relays.size()); i++)
-	{
-		for(int n = 0; n < int(relays[i].size()); n++)
-		{
-			if(relays[i][n].time > timeFound) timeFound = relays[i][n].time;
-		}
-	}
-
-	return timeFound;
-}
 
 void soundTest()
 {
@@ -546,14 +483,19 @@ void runScript(std::string fname)
 		std::string param( buf.substr(buf.find_first_of(':')+1, buf.size()-1) );
 
 		//create wait for motion event on pin
-		if(cmd == "WAITONMOTION")
+		if(cmd == "WAITONINPUTHI")
 		{
-			sevent *newevent = new sevent(EVENT_MOTION);
+			sevent *newevent = new sevent(EVENT_WAITONINPUTHI);
 
 			newevent->pin = atoi(param.c_str());
 			events.push_back(newevent);
+		}
+		else if(cmd == "WAITONINPUTLO")
+		{
+			sevent *newevent = new sevent(EVENT_WAITONINPUTLO);
 
-
+			newevent->pin = atoi(param.c_str());
+			events.push_back(newevent);
 		}
 		//load an play sound file
 		else if(cmd == "PLAYSOUND")
@@ -591,15 +533,32 @@ void runScript(std::string fname)
 			newevent->value = atoi(param.c_str());
 			events.push_back(newevent);
 		}
-		else if(cmd == "RELAY")
+		else if(cmd == "SETPINOUT")
 		{
-			sevent *newevent = new sevent(EVENT_RELAY);
+			sevent *newevent = new sevent(EVENT_SETPINOUT);
 
-			int rpin = atoi(param.substr(0, param.find(',')).c_str());
-			param.erase(0, param.find(',')+1);
-			int rstate = atoi(param.substr(0, param.find(',')).c_str());
-			newevent->pin = rpin;
-			newevent->value = rstate;
+			newevent->pin = atoi(param.c_str());
+			events.push_back(newevent);
+		}
+		else if(cmd == "SETPININ")
+		{
+			sevent *newevent = new sevent(EVENT_SETPININ);
+
+			newevent->pin = atoi(param.c_str());
+			events.push_back(newevent);
+		}
+		else if(cmd == "PINON")
+		{
+			sevent *newevent = new sevent(EVENT_PINON);
+
+			newevent->pin = atoi(param.c_str());
+			events.push_back(newevent);
+		}
+        else if(cmd == "PINOFF")
+		{
+			sevent *newevent = new sevent(EVENT_PINOFF);
+
+			newevent->pin = atoi(param.c_str());
 			events.push_back(newevent);
 		}
 		else if(cmd == "LABEL")
@@ -640,22 +599,31 @@ void runScript(std::string fname)
 	for(int i = 0; i < int(events.size()); i++)
 	{
 		//wait on motion detection event
-		if(events[i]->eventType == EVENT_MOTION)
+		if(events[i]->eventType == EVENT_WAITONINPUTHI)
 		{
-			digitalWrite(events[i]->pin, 0);
-			pinMode(events[i]->pin, INPUT);
-
-			bool motiondetected = false;
-
+			bool inputdetected = false;
 
 			delay(10);
 
-			while(!motiondetected)
+			while(!inputdetected)
 			{
-				if(digitalRead(events[i]->pin) == 1) motiondetected = true;
+				if(digitalRead(events[i]->pin) == 1) inputdetected = true;
 			}
 
-			digitalWrite(events[i]->pin, 0);
+			//digitalWrite(events[i]->pin, 0);
+		}
+		else if(events[i]->eventType == EVENT_WAITONINPUTLO)
+		{
+			bool inputdetected = false;
+
+			delay(10);
+
+			while(!inputdetected)
+			{
+				if(digitalRead(events[i]->pin) == 0) inputdetected = true;
+			}
+
+			//digitalWrite(events[i]->pin, 0);
 		}
 		else if(events[i]->eventType == EVENT_DELAY)
 		{
@@ -717,11 +685,23 @@ void runScript(std::string fname)
 				}
 			}
 		}
-		else if(events[i]->eventType == EVENT_RELAY)
+		else if(events[i]->eventType == EVENT_SETPINOUT)
 		{
-			bool relayon = events[i]->value;
-			if(relayon) pinOn(events[i]->pin);
-			else pinOff(events[i]->pin);
+			pinMode(events[i]->pin, OUTPUT);
+			digitalWrite(events[i]->pin, 0);
+		}
+		else if(events[i]->eventType == EVENT_SETPININ)
+		{
+            digitalWrite(events[i]->pin, 0);
+			pinMode(events[i]->pin, INPUT);
+		}
+		else if(events[i]->eventType == EVENT_PINON)
+		{
+			digitalWrite(events[i]->pin, 1);
+		}
+		else if(events[i]->eventType == EVENT_PINOFF)
+		{
+			digitalWrite(events[i]->pin, 0);
 		}
 		else if(events[i]->eventType == EVENT_TAKEPICTURE)
 		{
@@ -754,21 +734,18 @@ void mainMenu()
 		std::string buf;
 
 		//print main menu
-		std::cout << "RASPI PROJECT 3\n";
+		std::cout << "RASPI PROJECT 4\n";
 		std::cout << "---------------\n";
-	        std::cout << "1) Set Relay # ON\n";
-       		std::cout << "2) Set Relay # OFF\n";
-	        std::cout << "3) Set all Relays ON\n";
-       		std::cout << "4) Set all Relays OFF\n\n";
+        std::cout << "1) Set pin as output\n";
+        std::cout << "2) Set pin HIGH\n";
+        std::cout << "3) Set pin LOW\n"
+        std::cout << "4) Set pin as input\n";
+        std::cout << "5) Get input state\n\n";
 
-                std::cout << "5) Get clock time (sec)\n";
-		std::cout << "6) Get clock time (ms)\n";
-		std::cout << "7) Get clock time (us)\n";
-		std::cout << "8) RESET CLOCK\n\n";
-
-		std::cout << "\nT) Test pattern\n";
-		std::cout << "M) Motion Sensor Test v1\n";
-		std::cout << "P) Play sound file\n";
+        std::cout << "6) Get clock time (sec)\n";
+		std::cout << "7) Get clock time (ms)\n";
+		std::cout << "8) Get clock time (us)\n";
+		std::cout << "9) RESET CLOCK\n\n";
 
 		std::cout << "\nS) Snap picture";
 		std::cout << "\nF) Show Feed 10sec\n";
@@ -789,47 +766,74 @@ void mainMenu()
 		else if(buf == "1")
 		{
 			std::string ron;
-			std::cout << "\n\nEnter relay # to turn on :";
+			std::cout << "\n\nEnter pin # for output :";
 			std::getline(std::cin, ron);
 
-			pinOn( atoi(ron.c_str()) );
+			pinMode(atoi(ron.c_str()), OUTPUT);
+			//pinOff(atoi(ron.c_str()));
 		}
 		else if(buf == "2")
 		{
 			std::string roff;
-			std::cout << "\n\nEnter relay # to turn off :";
+			std::cout << "\n\nEnter pin # to HIGH :";
+			std::getline(std::cin, roff);
+
+			pinON( atoi(roff.c_str()) );
+		}
+		else if(buf == "2")
+		{
+			std::string roff;
+			std::cout << "\n\nEnter pin # to LOW :";
 			std::getline(std::cin, roff);
 
 			pinOff( atoi(roff.c_str()) );
 		}
-		else if(buf == "3") allOn();
-		else if(buf == "4") allOff();
+		else if(buf == "4")
+		{
+			std::string ron;
+			std::cout << "\n\nEnter pin # for input :";
+			std::getline(std::cin, ron);
+
+            //pinOff(atoi(ron.c_str()));
+			pinMode(atoi(ron.c_str()), INPUT);
+		}
 		else if(buf == "5")
+		{
+			std::string ron;
+			std::cout << "\n\nGet pin # input state :";
+			std::getline(std::cin, ron);
+
+            std::cout << "INPUT=" << digitalRead(atoi(ron.c_str())) << std::endl;
+            hitEnter();
+		}
+		else if(buf == "6")
 		{
 			std::cout << "\n\nClock in sec : " << millis()/1000 << std::endl;
 			hitEnter();
 		}
-		else if(buf == "6")
+		else if(buf == "7")
 		{
 			std::cout << "\n\nClock in ms : " << millis() << std::endl;
 			hitEnter();
 		}
-		else if(buf == "7")
+		else if(buf == "8")
 		{
 			std::cout << "\n\nClock in us : " << micros() << std::endl;
 			hitEnter();
 		}
-		else if(buf == "8")
+		else if(buf == "9")
 		{
 			resetAll();
 		}
-		else if(buf == "T" || buf == "t") testPattern();
-		else if(buf == "M" || buf == "m") motionTest();
-		else if(buf == "P" || buf == "p") soundTest();
+		//else if(buf == "T" || buf == "t") testPattern();
+		//else if(buf == "M" || buf == "m") motionTest();
+		//else if(buf == "P" || buf == "p") soundTest();
 		else if(buf == "S" || buf == "s") snapPicture();
 		else if(buf == "F" || buf == "f") showFeed(10);
 		else if(buf == "R" || buf == "r")
 		{
+		    system("clear");
+		    std::cout << "Running script.txt\n";
 			runScript("script.txt");
 			hitEnter();
 		}
@@ -846,16 +850,8 @@ void mainMenu()
 
 int main(int argc, char *argv[])
 {
-	bool doscript = false;
 	std::string scriptfile;
-	if(argc >= 2)
-	{
-		scriptfile = std::string(argv[1]);
-		doscript = true;
-	}
-
-	//initialize relay vectors
-	relays.resize(PINCOUNT);
+	if(argc >= 2) scriptfile = std::string(argv[1]);
 
 	//initialize / reset all
 	resetAll();
@@ -867,13 +863,9 @@ int main(int argc, char *argv[])
 	//initialize camera
 	initCamera();
 
-	//load sound file
-	//mysoundbuf.LoadFromFile("testwav.wav");
-	//mysound = sf::Sound(mysoundbuf);
-
-	resetAll();
-
-	if(!doscript) mainMenu();
+    // if not running script argument
+	if(scriptfile.empty()) mainMenu();
+	// else running script file argument
 	else runScript(scriptfile);
 
 	// shut down camera
