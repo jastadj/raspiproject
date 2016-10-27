@@ -31,6 +31,7 @@
 		<Compiler>
 			<Add option="-Wall" />
 		</Compiler>
+		<Unit filename="pin.hpp" />
 		<Unit filename="raspiproject.cpp" />
 		<Extensions>
 			<code_completion />

@@ -329,126 +329,6 @@ void resetAll()
 	//wiringPiSetupSys();
 }
 
-void testPattern()
-{
-
-	//get desired speed in ms
-	std::cout << "Enter test pattern speed (ms):";
-	int speed = 0;
-	std::cin >> speed;
-
-	//demo delay
-	std::string ddelay;
-	std::cout << "Enter time delay (ms) before test pattern runs <enter for no delay>:";
-	std::cin >> ddelay;
-	std::cin.clear();
-	std::cin.ignore(1000,'\n');
-
-	if(ddelay[0] != '\n') delay( atoi(ddelay.c_str()) );
-
-	//all pins off
-	allOff();
-
-	//walk lights back and forth then flash several times
-	for(int i = 0; i <  PINCOUNT; i++)
-	{
-		pinOn(i);
-		std::cout << i << "=ON\n";
-		delay(speed);
-		pinOff(i);
-		std::cout << i << "=OFF\n";
-	}
-
-	for(int i = PINCOUNT-2; i >= 0; i--)
-	{
-		pinOn(i);
-		std::cout << i << "=ON\n";
-		delay(speed);
-		pinOff(i);
-		std::cout << i << "=OFF\n";
-		delay(speed);
-	}
-
-	//walk lights in pair
-	for(int i = 0; i < PINCOUNT; i++)
-	{
-		int offset = i + 2;
-		if(offset >= PINCOUNT)
-		{
-			offset = offset - PINCOUNT;
-		}
-
-		pinOn(i);
-		pinOn(offset);
-
-		std::cout << i << " & " << offset << " are on\n";
-		delay(speed);
-
-		pinOff(i);
-		pinOff(offset);
-
-	}
-
-	//flash on and off a couple times
-	for(int i = 0; i < 3; i++)
-	{
-		allOn();
-		std::cout << "All ON\n";
-		delay(speed);
-		allOff();
-		std::cout << "All OFF\n";
-		delay(speed);
-	}
-
-	std::cout << "Test pattern finished..\n";
-	hitEnter();
-}
-
-void motionTest()
-{
-
-	//reset clock
-	resetAll();
-
-
-	digitalWrite(PIN7, 0);
-	pinMode(PIN7, INPUT);
-	bool motiondetected = false;
-
-
-
-	//pinOn(PIN7);
-	//pinMode(PIN7, INPUT);
-	//pullUpDnControl(int pin, int pud) pud = PUD_UP (pull to 3.3v,  PUD_DOWN - ground, or PUD_OFF)
-	//pullUpDnControl(PIN7, PUD_DOWN);
-	//pinOff(PIN7);
-
-	std::cout << "MOTION SENSOR TEST....\n\n";
-
-	//run test for 30 seconds
-	while(millis()/1000 < 30)
-	{
-		bool pinhigh = digitalRead(PIN7);
-
-		if(pinhigh && !motiondetected)
-		{
-			std::cout << "motion detected\n";
-			motiondetected = true;
-		}
-		else if(!pinhigh && motiondetected)
-		{
-			std::cout << "....................motion stopped\n";
-			motiondetected = false;
-		}
-	}
-}
-
-
-void soundTest()
-{
-	mysound.Play();
-}
-
 void runScript(std::string fname)
 {
 	//reset all pins
@@ -590,7 +470,8 @@ void runScript(std::string fname)
 		//found an unregonized command
 		else
 		{
-			std::cout << "Couldn't parse : " << buf << std::endl;
+			std::cout << "Unrecognized command : " << buf << std::endl;
+			hitEnter();
 		}
 
 	}
