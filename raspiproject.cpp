@@ -113,8 +113,8 @@ std::string getTimeAndDate()
     timess << (timeinfo->tm_year -100 + 2000) << timeinfo->tm_mon + 1 << timeinfo->tm_mday <<
         "_" << timeinfo->tm_hour << "_" << timeinfo->tm_min << "_" << timeinfo->tm_sec;
 
-    return timess.str();	
-	
+    return timess.str();
+
 }
 
 bool save_png_libpng(const char *filename, char *pixels, int w, int h)
@@ -167,41 +167,41 @@ void snapPicture()
 {
 	//has camera been initialized?
 	if(cam == NULL) return;
-	
+
 	char raw_cam[CAMERA_WIDTH * CAMERA_HEIGHT * 4];
 	char raw_for_texture[MAIN_TEXTURE_WIDTH * MAIN_TEXTURE_HEIGHT * 4];
 	int frame_sz;
-	
+
 	//capture camera frame
 	cam->ReadFrame(0, raw_cam, sizeof(raw_cam));
 	cam->ReadFrame(0, raw_for_texture, sizeof(raw_for_texture));
-	
+
 	// save picture to png format
 	std::string savefile( CAMERA_OUTPUT_FOLDER + getTimeAndDate() + ".png");
 	save_png_libpng(savefile.c_str(), raw_cam, CAMERA_WIDTH, CAMERA_HEIGHT);
-	
+
 
 	// able to toggle whether or not to show image
 	if(showimage)
 	{
 		// create gl texture from camera data
 		texture.SetPixels(raw_for_texture);
-		
+
 		//begin frame, draw the texture then end frame (the bit of maths just fits the image to the screen while maintaining aspect ratio)
 		BeginFrame();
 		float aspect_ratio = float(MAIN_TEXTURE_WIDTH)/float(MAIN_TEXTURE_HEIGHT);
 		float screen_aspect_ratio = 1280.f/720.f;
 		DrawTextureRect(&texture,-aspect_ratio/screen_aspect_ratio,-1.f,aspect_ratio/screen_aspect_ratio,1.f);
-		EndFrame();	
-		
-		ReleaseGraphics();			
+		EndFrame();
+
+		ReleaseGraphics();
 	}
 
-	
+
 	/*
 	//has camera been initialized?
 	if(cam == NULL) return;
-	
+
 	const void* frame_data;
 	int frame_sz;
 	if(cam->BeginReadFrame(0, frame_data, frame_sz) )
@@ -221,14 +221,14 @@ void snapPicture()
 		}
 		cam->EndReadFrame(0);
 	}
-	
+
 	//begin frame, draw the texture then end frame (the bit of maths just fits the image to the screen while maintaining aspect ratio)
 	BeginFrame();
 	float aspect_ratio = float(MAIN_TEXTURE_WIDTH)/float(MAIN_TEXTURE_HEIGHT);
 	float screen_aspect_ratio = 1280.f/720.f;
 	DrawTextureRect(&texture,-aspect_ratio/screen_aspect_ratio,-1.f,aspect_ratio/screen_aspect_ratio,1.f);
-	EndFrame();	
-	
+	EndFrame();
+
 	ReleaseGraphics();
 	*/
 }
@@ -242,38 +242,38 @@ void showFeed(int feedtime)
 		StopCamera();
 		cam = NULL;
 	}
-	
+
 	CCamera *camfeed = StartCamera(MAIN_TEXTURE_WIDTH, MAIN_TEXTURE_HEIGHT,30,1,do_argb_conversion);
-	
+
 	time_t starttime = time(NULL);
-	
+
 	while(time(NULL) <= starttime + feedtime)
 	{
 		char raw_for_texture[MAIN_TEXTURE_WIDTH * MAIN_TEXTURE_HEIGHT * 4];
-		
+
 		//capture camera frame
 		camfeed->ReadFrame(0, raw_for_texture, sizeof(raw_for_texture));
 
 			// create gl texture from camera data
 			texture.SetPixels(raw_for_texture);
-			
+
 			//begin frame, draw the texture then end frame (the bit of maths just fits the image to the screen while maintaining aspect ratio)
 			BeginFrame();
 			float aspect_ratio = float(MAIN_TEXTURE_WIDTH)/float(MAIN_TEXTURE_HEIGHT);
 			float screen_aspect_ratio = 1280.f/720.f;
 			DrawTextureRect(&texture,-aspect_ratio/screen_aspect_ratio,-1.f,aspect_ratio/screen_aspect_ratio,1.f);
-			EndFrame();	
-			
-			ReleaseGraphics();			
+			EndFrame();
+
+			ReleaseGraphics();
 
 	}
-	
+
 	StopCamera();
 	camfeed = NULL;
-	
+
 	// reinit main camera
 	initCamera();
-	
+
 }
 
 
@@ -299,7 +299,7 @@ void pinOn(int tpin)
 		return;
 	}
 
-	digitalWrite(tpin, LOW);
+	digitalWrite(tpin, HIGH);
 
 	return;
 
@@ -317,7 +317,7 @@ void pinOff(int tpin)
 		return;
 	}
 
-	digitalWrite(tpin, HIGH);
+	digitalWrite(tpin, LOW);
 
 	return;
 
@@ -451,7 +451,7 @@ void motionTest()
 
 	//reset clock
 	resetAll();
-	
+
 
 	digitalWrite(PIN7, 0);
 	pinMode(PIN7, INPUT);
@@ -553,13 +553,13 @@ void runScript(std::string fname)
 			newevent->pin = atoi(param.c_str());
 			events.push_back(newevent);
 
-			
+
 		}
 		//load an play sound file
 		else if(cmd == "PLAYSOUND")
 		{
 			sevent *newevent = new sevent(EVENT_SOUND_PLAY);
-			
+
 			newevent->soundobj = new soundObject;
 			newevent->soundobj->soundbuf.LoadFromFile(param);
 			newevent->soundobj->sound = sf::Sound(newevent->soundobj->soundbuf);
@@ -568,7 +568,7 @@ void runScript(std::string fname)
 		else if(cmd == "WAITONSOUND")
 		{
 			sevent *newevent = new sevent(EVENT_SOUND_WAIT);
-			
+
 			events.push_back(newevent);
 		}
 		else if(cmd == "STOPALLSOUND")
@@ -613,7 +613,7 @@ void runScript(std::string fname)
 		else if(cmd == "GOTO")
 		{
 			sevent *newevent = new sevent(EVENT_GOTO);
-			
+
 			newevent->estring = param;
 			events.push_back(newevent);
 		}
@@ -626,7 +626,7 @@ void runScript(std::string fname)
 		{
 			sevent *newevent = new sevent(EVENT_SHOWFEED);
 			newevent->value = atoi(param.c_str());
-			events.push_back(newevent);			
+			events.push_back(newevent);
 		}
 		//found an unregonized command
 		else
@@ -769,7 +769,7 @@ void mainMenu()
 		std::cout << "\nT) Test pattern\n";
 		std::cout << "M) Motion Sensor Test v1\n";
 		std::cout << "P) Play sound file\n";
-		
+
 		std::cout << "\nS) Snap picture";
 		std::cout << "\nF) Show Feed 10sec\n";
 
@@ -853,35 +853,35 @@ int main(int argc, char *argv[])
 		scriptfile = std::string(argv[1]);
 		doscript = true;
 	}
-	
+
 	//initialize relay vectors
 	relays.resize(PINCOUNT);
 
 	//initialize / reset all
 	resetAll();
-	
+
 	// initialize graphics
 	InitGraphics();
 	texture.Create(MAIN_TEXTURE_WIDTH, MAIN_TEXTURE_HEIGHT);
-	
+
 	//initialize camera
 	initCamera();
-	
+
 	//load sound file
 	//mysoundbuf.LoadFromFile("testwav.wav");
 	//mysound = sf::Sound(mysoundbuf);
 
 	resetAll();
-	
+
 	if(!doscript) mainMenu();
 	else runScript(scriptfile);
 
 	// shut down camera
 	if(cam != NULL) StopCamera();
-	
+
 	//by default, turn off all gpios on exit
 	allOff();
-	
+
 	return 0;
 }
 
