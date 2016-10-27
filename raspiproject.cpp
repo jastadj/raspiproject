@@ -846,6 +846,13 @@ void mainMenu()
 
 int main(int argc, char *argv[])
 {
+	bool doscript = false;
+	std::string scriptfile;
+	if(argc >= 2)
+	{
+		scriptfile = std::string(argv[1]);
+		doscript = true;
+	}
 	
 	//initialize relay vectors
 	relays.resize(PINCOUNT);
@@ -861,11 +868,13 @@ int main(int argc, char *argv[])
 	initCamera();
 	
 	//load sound file
-	mysoundbuf.LoadFromFile("testwav.wav");
-	mysound = sf::Sound(mysoundbuf);
+	//mysoundbuf.LoadFromFile("testwav.wav");
+	//mysound = sf::Sound(mysoundbuf);
 
 	resetAll();
-	mainMenu();
+	
+	if(!doscript) mainMenu();
+	else runScript(scriptfile);
 
 	// shut down camera
 	if(cam != NULL) StopCamera();
